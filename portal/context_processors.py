@@ -2,23 +2,15 @@
 # portal/context_processors.py
 
 
-def partner_service_info(request):
+def layout_context(request):
+        user = getattr(request, "user", None)
+        is_partner = getattr(user, "is_partner", False)() if callable(getattr(user, "is_partner", None)) else getattr(
+            user, "is_partner", False)
+        ps_info = getattr(getattr(user, "partner_fields", None), "partner_service", None)
 
-    user = getattr(request, "user", None)
-    if user and user.is_authenticated:
-        # Only include for relevant roles; adjust as needed
-        if hasattr(request, "ps_info"):
-            return {"psInfo": request.ps_info}
-
-        try:
-            ps = user.partner_fields.partner_service
-            request.ps_info = {
-                "name": ps.name,
-                "email": ps.email,
-                "phone_number": ps.phone_number,
-                "address": ps.address,
-            }
-        except Exception:
-            request.ps_info = None
-        return {"psInfo": request.ps_info}
-    return {"psInfo": None}
+        return {
+            "isPartner": bool(is_partner),
+            "psInfo": ps_info,
+            "userRole": getattr(getattr(user, "role", None), "label", None) or getattr(user, "role", None),
+            "viewLogin": not (user and user.is_authenticated),
+        }

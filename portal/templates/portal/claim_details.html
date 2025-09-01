@@ -30,39 +30,9 @@
         <div class="col-12">
           <div><span class="fw-semibold">Defect Category:</span> {{ claim.defect_category }}</div>
           <div><span class="fw-semibold">Claim Status:</span>
-            {% if claim.claim_status %}Closed{% else %}Open{% endif %}
+            {{ claim.get_status_display }}
           </div>
           <div><span class="fw-semibold">Defect Description:</span> {{ claim.defect_description }}</div>
-        </div>
-      </div>
-    </div>
-  {% else %}
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span class="fw-semibold">Claim #101</span>
-      <span class="badge bg-secondary">Repair</span>
-    </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <div><span class="fw-semibold">Claim Date:</span> 2025-08-28</div>
-          <div><span class="fw-semibold">Last Modified:</span> 2025-08-29</div>
-          <div><span class="fw-semibold">Vehicle Type:</span> Curtain Sider</div>
-          <div><span class="fw-semibold">Vehicle Defect Date:</span> 2025-08-20</div>
-          <div><span class="fw-semibold">Vehicle Registration Date:</span> 2024-06-01</div>
-          <div><span class="fw-semibold">Vehicle Kilometer:</span> 120000</div>
-          <div><span class="fw-semibold">Vehicle Chassis Number:</span> ABC123XYZ789</div>
-        </div>
-        <div class="col-md-6">
-          <div><span class="fw-semibold">Customer:</span> Jane Doe</div>
-          <div><span class="fw-semibold">Partner Service:</span> Tırsan Istanbul</div>
-          <div><span class="fw-semibold">Created By:</span> admin@example.com</div>
-          <div><span class="fw-semibold">Vehicle Driver Name:</span> Ali Veli</div>
-          <div><span class="fw-semibold">Vehicle Driver Phone:</span> +90 555 000 00 00</div>
-        </div>
-        <div class="col-12">
-          <div><span class="fw-semibold">Defect Category:</span> Brake system</div>
-          <div><span class="fw-semibold">Claim Status:</span> Open</div>
-          <div><span class="fw-semibold">Defect Description:</span> Brake noise under heavy load and reduced braking efficiency.</div>
         </div>
       </div>
     </div>

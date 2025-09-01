@@ -1,3 +1,7 @@
+from symtable import Class
+
+from django.http import HttpResponseForbidden
+
 from Service_Portal.settings import AUTH_USER_MODEL as User
 from django.db import models
 from datetime import date
@@ -65,18 +69,29 @@ class WarrantyClaim(models.Model):
 
     claim_date = models.DateField(auto_now_add=True)
     claim_last_modified = models.DateField(auto_now=True)
-    claim_type = models.CharField(max_length=3, choices=ClaimTypes.choices, default=ClaimTypes.Repair)
+    claim_type = models.CharField(max_length=2, choices=ClaimTypes.choices, default= ClaimTypes.Repair)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="claims")
     vehicle_driver_name = models.CharField(max_length=64)
     vehicle_driver_phone = models.CharField(max_length=20)
-    vehicle_type = models.CharField(max_length=2, choices=VehicleTypes.choices, default=VehicleTypes.Other)
+    vehicle_type = models.CharField(max_length=2, choices=VehicleTypes.choices, default= VehicleTypes.Other)
     vehicle_defect_date = models.DateField(default=date.today())
     vehicle_chassis_number = models.CharField(max_length=64)
     vehicle_registration_date = models.DateField( default= date.today())
     vehicle_kilometer = models.IntegerField()
     defect_category = models.TextField()
-    claim_status = models.CharField(max_length=2, choices= ClaimStatus.choices, default= ClaimStatus.New)
     defect_description = models.TextField()
+    status = models.CharField(max_length=2, choices=ClaimStatus.choices, default=ClaimStatus.New)
     partner_service = models.ForeignKey(PartnerService, on_delete=models.CASCADE, related_name="claims")
-    createdBy = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_claims")
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_claims")
+
+
+
+
+
+
+
+
+class SparePart(models.Model):
+    description = models.TextField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
 
