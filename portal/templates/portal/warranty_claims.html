@@ -1,0 +1,43 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Warranty Claims{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Warranty Claims</h1>
+</div>
+
+  <!-- Dynamic cards -->
+  {% for c in claims %}
+	  <div class="col align-center">
+	    <div class="card shadow-sm align-center">
+	      <div class="card-body align-center">
+	        <div class="d-flex justify-content-between align-items-start">
+	          <div>
+	            <!-- No label for user and customer names -->
+	            <div class="fw-semibold mb-1">{{ c.customer }}</div>
+	            <div class="text-muted mb-2">{{ c.customer.display_company }}</div>
+
+	            <!-- Labeled fields -->
+	            <div class="small">
+	              <div><span class="fw-semibold">Claim Number:</span> {{ c.id }}</div>
+	              <div><span class="fw-semibold">Chasis Number:</span> {{ c.vehicle_chassis_number }}</div>
+	              <div><span class="fw-semibold">Claim Date:</span> {{ c.claim_date }}</div>
+	              <div><span class="fw-semibold">Created By:</span> {{ c.created_by }}</div>
+	            </div>
+	          </div>
+	          <a href="{% url 'portal:claim_details' c.id %}" class="btn btn-sm btn-outline-primary">View</a>
+	        </div>
+	      </div>
+	    </div>
+	  </div>
+	  {% empty %}
+	  <div class="col">
+	    <div class="alert alert-info mb-0">
+	        You don't have any warranty claims yet. <br>
+		    <a href="{% url 'portal:create_claim' %}" class="btn btn-sm btn-outline-primary">Create a new claim</a>
+	    </div>
+	  </div>
+  {% endfor %}
+	<a href="{% url 'portal:create_claim' %}">Create a claim</a>
+{% endblock %}

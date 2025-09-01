@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser,UserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from portal.models import PartnerService
+from portal.models import WarrantyClaim
 
 
 # Create your models here.
@@ -20,6 +22,20 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
 
+    @property
+    def is_partner(self):
+        return self.role == self.Types.PARTNER
+
+    @property
+    def is_ssh(self):
+        return self.role == self.Types.SSH
+
+    def get_partner_claims(self):
+        try:
+            return self.partner_fields.partner_service.claims.all()
+        except Exception:
+            return WarrantyClaim.objects.none()
+
 
 class PartnerManager(UserManager):
     def get_queryset(self):
@@ -30,13 +46,13 @@ class PartnerFields(models.Model):
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
-        related_name="partner_fields"
+        related_name="partner_fields",
     )
     #her servis kullanıcısnın ait olduğu bayi id'si bilgisini tutar
-    partner_service=models.ForeignKey("portal.PartnerService", on_delete=models.CASCADE, related_name="users")
+    partner_service=models.ForeignKey(PartnerService, on_delete=models.CASCADE, related_name="users")
 
     def __str__(self):
-        return f"{self.user.username} partner fields"
+        return f"{self.user.username}'s partner fields"
 
 
 class Partner(User):
@@ -45,7 +61,7 @@ class Partner(User):
 
     @property
     def more(self):
-        return getattr(self, "partner_fields", None)
+        return self.partner_fields
 
     class Meta:
         proxy = True
