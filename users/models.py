@@ -9,10 +9,12 @@ from portal.models import WarrantyClaim
 class User(AbstractUser):
     class Types(models.TextChoices):
         PARTNER = "PARTNER", "Partner"
+        PARTNER_ADMIN = "PARTNER_ADMIN", "Partner Admin"
         SSH = "SSH", "SSH"
+        SSH_ADMIN = "SSH_ADMIN", "SSH Admin"
 
     base_role = Types.PARTNER
-    role = models.CharField(_('Type'), max_length=10, choices=Types.choices,default=base_role)
+    role = models.CharField(_('Type'), max_length=20, choices=Types.choices,default=base_role)
 
 
     def save(self, *args, **kwargs):
@@ -29,6 +31,14 @@ class User(AbstractUser):
     @property
     def is_ssh(self):
         return self.role == self.Types.SSH
+
+    @property
+    def is_partner_admin(self):
+        return self.role == self.Types.PARTNER_ADMIN
+
+    @property
+    def is_ssh_admin(self):
+        return self.role == self.Types.SSH_ADMIN
 
     def get_partner_claims(self):
         try:
@@ -89,4 +99,40 @@ class SSH(User):
         if not self.pk:
             self.role = self.base_role
         return super().save(*args,**kwargs)
+
+
+class PartnerAdminManager(UserManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(role=self.model.Types.PARTNER_ADMIN)
+
+
+class PartnerAdmin(User):
+    base_role = User.Types.PARTNER_ADMIN
+    objects = PartnerAdminManager()
+
+    class Meta:
+        proxy = True
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            self.role = self.base_role
+        return super().save(*args, **kwargs)
+
+
+class SSHAdminManager(UserManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(role=self.model.Types.SSH_ADMIN)
+
+
+class SSHAdmin(User):
+    base_role = User.Types.SSH_ADMIN
+    objects = SSHAdminManager()
+
+    class Meta:
+        proxy = True
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            self.role = self.base_role
+        return super().save(*args, **kwargs)
 

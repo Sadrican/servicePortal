@@ -14,6 +14,8 @@ urlpatterns = [
 
     path('claims_page', views.claims_page, name='claims'),
     path('create_claim',views.create_claim, name='create_claim'),
-    path('claim/<int:claim_id>',views.claim_details, name='claim_details')
+    path('claim/<int:claim_id>',views.claim_details, name='claim_details'),
+    path('claim/<int:claim_id>/update',views.update_claim, name='update_claim'),
+    path('api/part-info', views.part_info, name='part_info'),
 
 ]

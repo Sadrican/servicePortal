@@ -1,7 +1,3 @@
-from symtable import Class
-
-from django.http import HttpResponseForbidden
-
 from Service_Portal.settings import AUTH_USER_MODEL as User
 from django.db import models
 from datetime import date
@@ -37,6 +33,35 @@ class Customer(models.Model):
     @property
     def display_company(self):
         return f"{self.company.title()}"
+
+class SparePart(models.Model):
+    class Currency(models.TextChoices):
+        USD = "USD", _("US Dollar")
+        EUR = "EUR", _("Euro")
+        GBP = "GBP", _("Pound Sterling")
+        TRY = "TRY", _("Turkish Lira")
+
+    stock_code = models.CharField(max_length=64, unique=True, db_index=True, verbose_name="Stock Code",default=0)
+    description = models.TextField()
+    # Store prices for all supported currencies
+    price_usd = models.DecimalField(max_digits=12, decimal_places=2,default=0)
+    price_eur = models.DecimalField(max_digits=12, decimal_places=2,default=0)
+    price_gbp = models.DecimalField(max_digits=12, decimal_places=2,default=0)
+    price_try = models.DecimalField(max_digits=12, decimal_places=2,default=0)
+
+    def __str__(self):
+        return f"{self.stock_code}"
+
+    def get_price(self, currency):
+        mapping = {
+            self.Currency.USD: self.price_usd,
+            self.Currency.EUR: self.price_eur,
+            self.Currency.GBP: self.price_gbp,
+            self.Currency.TRY: self.price_try,
+        }
+        return mapping.get(currency)
+
+
 #garanti talep tablosu
 class WarrantyClaim(models.Model):
     class ClaimTypes(models.TextChoices):
@@ -75,7 +100,7 @@ class WarrantyClaim(models.Model):
     vehicle_driver_phone = models.CharField(max_length=20)
     vehicle_type = models.CharField(max_length=2, choices=VehicleTypes.choices, default= VehicleTypes.Other)
     vehicle_defect_date = models.DateField(default=date.today())
-    vehicle_chassis_number = models.CharField(max_length=64)
+    vehicle_chassis_number = models.IntegerField()
     vehicle_registration_date = models.DateField( default= date.today())
     vehicle_kilometer = models.IntegerField()
     defect_category = models.TextField()
@@ -83,15 +108,37 @@ class WarrantyClaim(models.Model):
     status = models.CharField(max_length=2, choices=ClaimStatus.choices, default=ClaimStatus.New)
     partner_service = models.ForeignKey(PartnerService, on_delete=models.CASCADE, related_name="claims")
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_claims")
+    spare_parts = models.ManyToManyField(
+        "SparePart",
+        through="ClaimSparePart",
+        related_name="claims",
+        blank=True,
+    )
+
+class ClaimSparePart(models.Model):
+    claim = models.ForeignKey(WarrantyClaim, on_delete=models.CASCADE, related_name="parts")
+    # Keep an M2M through FK for referential integrity, but user will type stock_code
+    spare_part = models.ForeignKey(SparePart, on_delete=models.PROTECT, related_name="claim_spareparts")
+
+    # User-entered stock code field to look up the SparePart; also stored as snapshot
+    stock_code = models.CharField(max_length=64, verbose_name=_("Stock Code"))
+    description = models.TextField(blank=True, verbose_name=_("Description"))
+
+    # Pricing snapshot
+    currency = models.CharField(max_length=3, choices=SparePart.Currency.choices, default=SparePart.Currency.EUR)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    quantity = models.PositiveIntegerField()
+    approved_quantity = models.PositiveIntegerField(null=True, blank=True)
+    total_price = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        unique_together = (("claim", "spare_part"),)
+
+    def __str__(self):
+        return f"{self.stock_code}"
 
 
 
 
-
-
-
-
-class SparePart(models.Model):
-    description = models.TextField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
 

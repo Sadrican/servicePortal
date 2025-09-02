@@ -23,7 +23,7 @@
         <div class="col-md-6">
           <div><span class="fw-semibold">Customer:</span> {{ claim.customer }}</div>
           <div><span class="fw-semibold">Partner Service:</span> {{ claim.partner_service }}</div>
-          <div><span class="fw-semibold">Created By:</span> {{ claim.createdBy }}</div>
+          <div><span class="fw-semibold">Created By:</span> {{ claim.created_by }}</div>
           <div><span class="fw-semibold">Vehicle Driver Name:</span> {{ claim.vehicle_driver_name }}</div>
           <div><span class="fw-semibold">Vehicle Driver Phone:</span> {{ claim.vehicle_driver_phone }}</div>
         </div>
@@ -35,7 +35,62 @@
           <div><span class="fw-semibold">Defect Description:</span> {{ claim.defect_description }}</div>
         </div>
       </div>
+
+      <hr>
+      <div class="d-flex align-items-center justify-content-between mt-3">
+        <h6 class="mb-0">Spare Parts</h6>
+      </div>
+      {% if claim.parts.all %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Stock Code</th>
+                <th scope="col">Description</th>
+                <th scope="col" class="text-end">Qty</th>
+                <th scope="col" class="text-end">Approved Qty</th>
+                <th scope="col" class="text-end">Unit Price</th>
+                <th scope="col" class="text-end">Currency</th>
+                <th scope="col" class="text-end">Total Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for part in claim.parts.all %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>
+                    {{ part.stock_code }}
+                  </td>
+                  <td>
+                    {% if part.description %}{{ part.description }}{% else %}{{ part.spare_part.description }}{% endif %}
+                  </td>
+                  <td class="text-end">{{ part.quantity }}</td>
+                  <td class="text-end">{% if part.approved_quantity %}{{ part.approved_quantity }}{% else %}-{% endif %}</td>
+                  <td class="text-end">{{ part.unit_price }}</td>
+                  <td class="text-end">{{ part.currency }}</td>
+                  <td class="text-end">{{ part.total_price }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="8" class="text-center text-muted">No spare parts added to this claim.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="alert alert-light border">No spare parts added to this claim.</div>
+      {% endif %}
     </div>
+	  {% else %}
+	  <div class="col">
+	    <div class="alert alert-info mb-0">
+	      <p>Claim not found.</p>
+	    </div>
+	  </div>
   {% endif %}
+
+	<a href="{% url "portal:update_claim" claim.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
 </div>
 {% endblock %}

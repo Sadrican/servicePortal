@@ -39,5 +39,8 @@
 	    </div>
 	  </div>
   {% endfor %}
-	<a href="{% url 'portal:create_claim' %}">Create a claim</a>
+	{% if isPartner %}
+		<a href="{% url 'portal:create_claim' %}">Create a claim</a>
+	{% endif %}
+
 {% endblock %}

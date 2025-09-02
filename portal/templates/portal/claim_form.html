@@ -27,7 +27,7 @@
         <h5 class="border-bottom pb-2">Vehicle Information</h5>
       </div>
       {% for field in form.visible_fields %}
-        {% if "vehicle" in field.name|lower %}
+        {% if "vehicle" in field.name|lower and "defect" not in field.name|lower %}
           <div class="col-md-6">
             {{ field.label_tag }}{{ field }}{{ field.errors }}
           </div>
@@ -46,11 +46,130 @@
         {% endif %}
       {% endfor %}
 
+      <!-- Spare part entry by stock code -->
+      <div class="col-12 mt-3">
+        <h5 class="border-bottom pb-2">Used Spare Parts</h5>
+      </div>
+      <div class="col-md-6">
+        {{ spare_form.stock_code.label_tag }}{{ spare_form.stock_code }}{{ spare_form.stock_code.errors }}
+      </div>
+      <div class="col-md-3">
+        {{ spare_form.quantity.label_tag }}{{ spare_form.quantity }}{{ spare_form.quantity.errors }}
+      </div>
+      <div class="col-md-3">
+        {{ spare_form.currency.label_tag }}{{ spare_form.currency }}{{ spare_form.currency.errors }}
+      </div>
+
+      <div class="col-12 d-flex justify-content-between align-items-center">
+        <input type="hidden" id="parts_json" name="parts_json" value="{{ parts_json|default:'' }}">
+        <button type="button" id="addPartBtn" class="btn btn-outline-success btn-sm">Add Spare Part</button>
+      </div>
+
+      <div class="col-12">
+        <div class="table-responsive mt-2">
+          <table class="table table-sm align-middle" id="partsTable">
+            <thead>
+            <tr>
+              <th>#</th>
+              <th>Stock Code</th>
+              <th>Description</th>
+              <th>Qty</th>
+              <th>Currency</th>
+              <th>Unit Price</th>
+              <th class="text-end">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Submit -->
       <div class="col-12">
         <button type="submit" class="btn btn-primary">Save Claim</button>
         <a href="{% url 'portal:claims' %}" class="btn btn-outline-secondary">Cancel</a>
       </div>
+
+      <script>
+      (function(){
+        const partsInput = document.getElementById('parts_json');
+        const tableBody = document.querySelector('#partsTable tbody');
+        const addBtn = document.getElementById('addPartBtn');
+        const stockEl = document.getElementById('{{ spare_form.stock_code.id_for_label }}');
+        const qtyEl = document.getElementById('{{ spare_form.quantity.id_for_label }}');
+        const currEl = document.getElementById('{{ spare_form.currency.id_for_label }}');
+
+        function getParts(){
+          try { return JSON.parse(partsInput.value || '[]'); } catch(e){ return []; }
+        }
+        function setParts(arr){ partsInput.value = JSON.stringify(arr); render(); }
+        function render(){
+          const parts = getParts();
+          tableBody.innerHTML = '';
+          parts.forEach((p, idx)=>{
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${idx+1}</td>
+              <td>${p.stock_code}</td>
+              <td>${p.description || ''}</td>
+              <td>${p.quantity}</td>
+              <td>${p.currency}</td>
+              <td>${p.unit_price != null ? p.unit_price : ''}</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-sm btn-outline-danger" data-idx="${idx}">Remove</button>
+              </td>`;
+            tableBody.appendChild(tr);
+          });
+        }
+        tableBody.addEventListener('click', function(e){
+          const btn = e.target.closest('button[data-idx]');
+          if(!btn) return;
+          const idx = parseInt(btn.getAttribute('data-idx'));
+          const parts = getParts();
+          parts.splice(idx,1);
+          setParts(parts);
+        });
+        addBtn.addEventListener('click', function(){
+          const stock = (stockEl.value || '').trim();
+          const qty = parseInt(qtyEl.value || '1');
+          const curr = currEl.value;
+          if(!stock){
+            alert('Please enter a stock code.');
+            return;
+          }
+          // Fetch part info to display description/unit price
+          const url = new URL('{% url "portal:part_info" %}', window.location.origin);
+          url.searchParams.set('stock_code', stock);
+          url.searchParams.set('currency', curr);
+          fetch(url, {credentials: 'same-origin'})
+            .then(r => {
+              if (r.status === 404) throw new Error('Stock code not found');
+              if (!r.ok) throw new Error('Failed to fetch part info');
+              return r.json();
+            })
+            .then(info => {
+              const parts = getParts();
+              parts.push({
+                stock_code: stock,
+                quantity: isNaN(qty)?1:Math.max(1, qty),
+                currency: curr,
+                description: info.description,
+                unit_price: info.unit_price
+              });
+              setParts(parts);
+              // clear inputs for next entry
+              stockEl.value = '';
+              qtyEl.value = '1';
+            })
+            .catch(err => {
+              alert(err.message);
+            });
+        });
+        // on load, render existing (e.g., when validation error round-trip)
+        render();
+      })();
+      </script>
     </form>
   </div>
 </div>
