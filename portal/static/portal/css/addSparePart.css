@@ -1,0 +1,22 @@
+
+
+/* language: css */
+#partsTable { table-layout: auto; }            /* let content drive widths */
+
+/* Tight columns: stay as small as possible */
+#partsTable th.col-narrow {
+  white-space: nowrap;
+  width: 1%;                /* shrink hint */
+}
+#partsTable td.col-narrow {
+  white-space: nowrap;
+}
+
+/* Description column: allow wrapping so it uses leftover space */
+#partsTable th.col-wrap {
+  white-space: nowrap;      /* keep header on one line */
+}
+#partsTable td.col-wrap {
+  white-space: normal;
+  word-break: break-word;   /* break long tokens if needed */
+}

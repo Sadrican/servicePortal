@@ -41,10 +41,16 @@ class User(AbstractUser):
         return self.role == self.Types.SSH_ADMIN
 
     def get_partner_claims(self):
-        try:
-            return self.partner_fields.partner_service.claims.all()
-        except Exception:
-            return WarrantyClaim.objects.none()
+        if not (self.is_partner or self.is_partner_admin):
+            return "That is not a partner"
+        else:
+            try:
+                ps = self.partner_fields.partner_service.claims.all()
+            except Exception:
+                return "Cannot find any claims for this partner service or partner service "
+            else:
+                return ps
+
 
 
 class PartnerManager(UserManager):
@@ -106,17 +112,9 @@ class PartnerAdminManager(UserManager):
         return super().get_queryset().filter(role=self.model.Types.PARTNER_ADMIN)
 
 
-class PartnerAdmin(User):
+class PartnerAdmin(Partner):
     base_role = User.Types.PARTNER_ADMIN
     objects = PartnerAdminManager()
-
-    class Meta:
-        proxy = True
-
-    def save(self, *args, **kwargs):
-        if not self.pk:
-            self.role = self.base_role
-        return super().save(*args, **kwargs)
 
 
 class SSHAdminManager(UserManager):

@@ -52,13 +52,13 @@ class SparePart(models.Model):
     """Catalog entry for a spare part with prices in multiple currencies."""
 
     class Currency(models.TextChoices):
-        USD = "USD", _("US Dollar")
-        EUR = "EUR", _("Euro")
-        GBP = "GBP", _("Pound Sterling")
-        TRY = "TRY", _("Turkish Lira")
+        USD = "USD", _("USD")
+        EUR = "EUR", _("EUR")
+        GBP = "GBP", _("GBP")
+        TRY = "TRY", _("TRY")
 
     stock_code = models.CharField(
-        max_length=64, unique=True, db_index=True, verbose_name="Stock Code", default=0
+        max_length=64, unique=True, db_index=True, verbose_name=_("Stock Code"), default=0
     )
     description = models.TextField()
     # Store prices for all supported currencies
@@ -68,20 +68,8 @@ class SparePart(models.Model):
     price_try = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
     def __str__(self):
-        return f"{self.stock_code}"
+        return f"{self.stock_code}:{self.description}"
 
-    def get_price(self, currency):
-        """Return the unit price in the requested currency.
-
-        If currency is unknown, returns None.
-        """
-        mapping = {
-            self.Currency.USD: self.price_usd,
-            self.Currency.EUR: self.price_eur,
-            self.Currency.GBP: self.price_gbp,
-            self.Currency.TRY: self.price_try,
-        }
-        return mapping.get(currency)
 
 
 class WarrantyClaim(models.Model):
@@ -119,9 +107,9 @@ class WarrantyClaim(models.Model):
     vehicle_driver_name = models.CharField(max_length=64)
     vehicle_driver_phone = models.CharField(max_length=20)
     vehicle_type = models.CharField(max_length=2, choices=VehicleTypes.choices, default=VehicleTypes.Other)
-    vehicle_defect_date = models.DateField(default=date.today())
+    vehicle_defect_date = models.DateField(default=date.today)
     vehicle_chassis_number = models.IntegerField()
-    vehicle_registration_date = models.DateField(default=date.today())
+    vehicle_registration_date = models.DateField(default=date.today)
     vehicle_kilometer = models.IntegerField()
     defect_category = models.TextField()
     defect_description = models.TextField()
@@ -129,19 +117,16 @@ class WarrantyClaim(models.Model):
     partner_service = models.ForeignKey(PartnerService, on_delete=models.CASCADE, related_name="claims")
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_claims")
     spare_parts = models.ManyToManyField(
-        "SparePart",
+        SparePart,
         through="ClaimSparePart",
-        related_name="claims",
         blank=True,
     )
-
 
 class ClaimSparePart(models.Model):
     """Through model storing part snapshot and pricing at claim time."""
 
-    claim = models.ForeignKey(WarrantyClaim, on_delete=models.CASCADE, related_name="parts")
-    # Keep an M2M through FK for referential integrity, but user will type stock_code
-    spare_part = models.ForeignKey(SparePart, on_delete=models.PROTECT, related_name="claim_spareparts")
+    claim = models.ForeignKey(WarrantyClaim, on_delete=models.CASCADE, related_name="claim_spare_parts")
+    spare_part = models.ForeignKey(SparePart,to_field="stock_code", on_delete=models.PROTECT, related_name="claims")
 
     # User-entered stock code field to look up the SparePart; also stored as snapshot
     stock_code = models.CharField(max_length=64, verbose_name=_("Stock Code"))
@@ -153,65 +138,15 @@ class ClaimSparePart(models.Model):
 
     quantity = models.PositiveIntegerField()
     approved_quantity = models.PositiveIntegerField(null=True, blank=True)
+
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
+    approved_total_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
     class Meta:
         unique_together = (("claim", "spare_part"),)
 
     def __str__(self):
         return f"{self.stock_code}"
-
-
-class Labour(models.Model):
-    """Catalog entry for labour with hourly rates in multiple currencies."""
-
-    class Currency(models.TextChoices):
-        USD = "USD", _("US Dollar")
-        EUR = "EUR", _("Euro")
-        GBP = "GBP", _("Pound Sterling")
-        TRY = "TRY", _("Turkish Lira")
-
-    code = models.CharField(max_length=64, unique=True, db_index=True, verbose_name=_("Labour Code"))
-    description = models.TextField()
-    rate_usd = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    rate_eur = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    rate_gbp = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    rate_try = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-
-    def __str__(self):
-        return self.code
-
-    def get_rate(self, currency):
-        """Return the hourly rate in the requested currency, or None if unknown."""
-        mapping = {
-            self.Currency.USD: self.rate_usd,
-            self.Currency.EUR: self.rate_eur,
-            self.Currency.GBP: self.rate_gbp,
-            self.Currency.TRY: self.rate_try,
-        }
-        return mapping.get(currency)
-
-
-class ClaimLabour(models.Model):
-    """Through model storing labour snapshot and pricing at claim time."""
-
-    claim = models.ForeignKey(WarrantyClaim, on_delete=models.CASCADE, related_name="labours")
-    labour = models.ForeignKey(Labour, on_delete=models.PROTECT, related_name="claim_labours")
-
-    code = models.CharField(max_length=64, verbose_name=_("Labour Code"))
-    description = models.TextField(blank=True, verbose_name=_("Description"))
-
-    currency = models.CharField(max_length=3, choices=Labour.Currency.choices, default=Labour.Currency.EUR)
-    unit_rate = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-
-    duration = models.DecimalField(max_digits=7, decimal_places=2)
-    total_price = models.DecimalField(max_digits=12, decimal_places=2)
-
-    class Meta:
-        unique_together = (("claim", "labour"),)
-
-    def __str__(self):
-        return f"{self.code}"
 
 
 

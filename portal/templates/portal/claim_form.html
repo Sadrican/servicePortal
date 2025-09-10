@@ -1,284 +1,241 @@
 {% extends "portal/base.html" %}
 {% load static %}
-
+{% block css %}
+	<link rel="stylesheet" href="{% static 'portal/css/addSparePart.css' %}">
+{% endblock %}
 {% block title %}Create Warranty Claim{% endblock %}
 
 {% block content %}
 <div class="card shadow-sm">
   <div class="card-header fw-semibold">New Warranty Claim</div>
   <div class="card-body">
-    <form method="post" class="row g-3">
+    <style>
+      /* Style-only tweaks for this form */
+      .errorlist { margin: 0.25rem 0 0; padding-left: 1rem; }
+      .errorlist li { color: #dc3545; font-size: .875rem; }
+      #partsTable thead th { position: sticky; top: 0; background: #f8f9fa; z-index: 1; }
+      #partsTable td, #partsTable th { vertical-align: middle; }
+      .section-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+      .section-heading h5 { margin: 0; padding-bottom: .25rem; border-bottom: 1px solid #dee2e6; }
+    </style>
+
+    <form method="post" class="row g-3" id="create_claim">
       {% csrf_token %}
       {{ form.non_field_errors }}
 
       <!-- Warranty Information -->
       <div class="col-12">
-        <h5 class="border-bottom pb-2">Warranty Information</h5>
+        <h5 class="border-bottom pb-2 mb-2">Warranty Information</h5>
       </div>
       <div class="col-md-6">
-        {{ form.customer.label_tag }}{{ form.customer }}{{ form.customer.errors }}
+        <label for="{{ WarrantForm.customer.id }}" class="mb-1 small text-muted">{{ WarrantForm.customer.label }}</label>
+        {{ WarrantForm.customer }}
+        {{ WarrantForm.customer.errors }}
       </div>
       <div class="col-md-6">
-        {{ form.claim_type.label_tag }}{{ form.claim_type }}{{ form.claim_type.errors }}
+        <label for="{{ WarrantForm.claim_type.id_for_label }}" class="mb-1 small text-muted">{{ WarrantForm.claim_type.label }}</label>
+        {{ WarrantForm.claim_type }}
+        {{ WarrantForm.claim_type.errors }}
       </div>
 
       <!-- Vehicle Information -->
       <div class="col-12 mt-3">
-        <h5 class="border-bottom pb-2">Vehicle Information</h5>
+        <h5 class="border-bottom pb-2 mb-2">Vehicle Information</h5>
       </div>
-      {% for field in form.visible_fields %}
+      {% for field in WarrantForm.visible_fields %}
         {% if "vehicle" in field.name|lower and "defect" not in field.name|lower %}
           <div class="col-md-6">
-            {{ field.label_tag }}{{ field }}{{ field.errors }}
+            <label for="{{ field.id_for_label }}" class="mb-1 small text-muted">{{ field.label }}</label>
+            {{ field }}
+            {{ field.errors }}
           </div>
         {% endif %}
       {% endfor %}
 
       <!-- Defect Information -->
       <div class="col-12 mt-3">
-        <h5 class="border-bottom pb-2">Defect Information</h5>
+        <h5 class="border-bottom pb-2 mb-2">Defect Information</h5>
       </div>
-      {% for field in form.visible_fields %}
+      {% for field in WarrantForm.visible_fields %}
         {% if "defect" in field.name|lower %}
           <div class="col-12">
-            {{ field.label_tag }}{{ field }}{{ field.errors }}
+            <label for="{{ field.id_for_label }}" class="mb-1 small text-muted">{{ field.label_tag}}</label>
+            {{ field }}
+            {{ field.errors }}
           </div>
         {% endif %}
       {% endfor %}
-
+        <input type="hidden" id="parts_payload" name="parts" value="[]">
+	</form>
       <!-- Spare part entry by stock code -->
-      <div class="col-12 mt-3">
-        <h5 class="border-bottom pb-2">Used Spare Parts</h5>
-      </div>
-      <div class="col-md-6">
-        {{ spare_form.stock_code.label_tag }}{{ spare_form.stock_code }}{{ spare_form.stock_code.errors }}
-      </div>
-      <div class="col-md-3">
-        {{ spare_form.quantity.label_tag }}{{ spare_form.quantity }}{{ spare_form.quantity.errors }}
-      </div>
-      <div class="col-md-3">
-        {{ spare_form.currency.label_tag }}{{ spare_form.currency }}{{ spare_form.currency.errors }}
-      </div>
+  <div class="col-12 mt-3">
+    <h5 class="border-bottom pb-2 mb-2">Spare Parts</h5>
+  </div>
+    <div id="sparePartInputs" class="row g-2 align-items-end">
+		  <div class="col-6 col-md-2">
+		    {{ SparePartForm.stock_code.label_tag }}
+		    {{ SparePartForm.stock_code }}
+		    {{ SparePartForm.stock_code.errors }}
+		  </div>
+		  <div class="col-6 col-md-2">
+		    {{ SparePartForm.quantity.label_tag }}
+		    {{ SparePartForm.quantity }}
+		    {{ SparePartForm.quantity.errors }}
+		  </div>
+		  <div class="col-6 col-md-2">
+		    {{ SparePartForm.currency.label_tag }}
+		    {{ SparePartForm.currency }}
+		    {{ SparePartForm.currency.errors }}
+		  </div>
+		  <div class="col-12 col-md-3">
+		    <button type="button" class="btn btn-outline-success align-bottom mt-auto" id="addPartBtn">
+		      add part
+		    </button>
+		  </div>
+	</div>
 
-      <div class="col-12 d-flex justify-content-between align-items-center">
-        <input type="hidden" id="parts_json" name="parts_json" value="{{ parts_json|default:'' }}">
-        <button type="button" id="addPartBtn" class="btn btn-outline-success btn-sm">Add Spare Part</button>
-      </div>
-
-      <div class="col-12">
-        <div class="table-responsive mt-2">
-          <table class="table table-sm align-middle" id="partsTable">
-            <thead>
-            <tr>
-              <th>#</th>
-              <th>Stock Code</th>
-              <th>Description</th>
-              <th>Qty</th>
-              <th>Currency</th>
-              <th>Unit Price</th>
-              <th class="text-end">Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Labour entry -->
-      <div class="col-12 mt-4">
-        <h5 class="border-bottom pb-2">Labour</h5>
-      </div>
-      <div class="col-md-6">
-        {{ labour_form.code.label_tag }}{{ labour_form.code }}{{ labour_form.code.errors }}
-      </div>
-      <div class="col-md-3">
-        {{ labour_form.duration.label_tag }}{{ labour_form.duration }}{{ labour_form.duration.errors }}
-      </div>
-      <div class="col-md-3">
-        {{ labour_form.currency.label_tag }}{{ labour_form.currency }}{{ labour_form.currency.errors }}
-      </div>
-
-      <div class="col-12 d-flex justify-content-between align-items-center">
-        <input type="hidden" id="labours_json" name="labours_json" value="{{ labours_json|default:'' }}">
-        <button type="button" id="addLabourBtn" class="btn btn-outline-success btn-sm">Add Labour</button>
-      </div>
 
       <div class="col-12">
         <div class="table-responsive mt-2">
-          <table class="table table-sm align-middle" id="laboursTable">
-            <thead>
-            <tr>
-              <th>#</th>
-              <th>Code</th>
-              <th>Description</th>
-              <th>Duration</th>
-              <th>Currency</th>
-              <th>Unit Rate</th>
-              <th class="text-end">Actions</th>
-            </tr>
+          <table id="partsTable" class="table table-sm table-striped table-bordered align-middle mb-0" >
+	          <colgroup>
+			    <col class="col-narrow"><!-- # -->
+			    <col class="col-narrow"><!-- Stock Code -->
+			    <col class="col-wrap">  <!-- Description -->
+			    <col class="col-narrow"><!-- Qty -->
+			    <col class="col-narrow"><!-- Currency -->
+			    <col class="col-narrow"><!-- Unit Price -->
+			    <col class="col-narrow"><!-- Total Price -->
+			  </colgroup>
+
+            <caption class="small text-muted">Parts to be included in the claim</caption>
+            <thead class="table-light">
+	            <tr>
+					<th>#</th>
+					<th>Stock Code</th>
+					<th>Description</th>
+					<th>Quantity</th>
+					<th>Unit Price</th>
+					<th>Currency</th>
+					<th>Total Price</th>
+		            <th>Actions</th>
+	            </tr>
             </thead>
-            <tbody>
-            </tbody>
           </table>
         </div>
       </div>
 
       <!-- Submit -->
       <div class="col-12">
-        <button type="submit" class="btn btn-primary">Save Claim</button>
-        <a href="{% url 'portal:claims' %}" class="btn btn-outline-secondary">Cancel</a>
+        <hr class="mt-4 mb-3">
+        <div class="d-flex gap-2">
+          <button id="claim_submit"  type="submit" form="create_claim" class="btn btn-primary">Save Claim</button>
+          <a href="{% url 'portal:claims' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
       </div>
 
-      <script>
-      (function(){
-        // Small helpers
-        const $ = s => document.querySelector(s);
-        const parseJSON = v => { try { return JSON.parse(v || '[]'); } catch(_) { return []; } };
-        const byId = id => document.getElementById(id);
-
-        // Generic table manager to compact duplicated logic
-        function tableManager(cfg){
-          const input = byId(cfg.hiddenId);
-          const tbody = $(cfg.tbodySel);
-          const getItems = () => parseJSON(input.value);
-          const setItems = arr => { input.value = JSON.stringify(arr); render(); };
-          function render(){
-            const items = getItems();
-            tbody.innerHTML = '';
-            items.forEach((it, idx)=>{
-              const tr = document.createElement('tr');
-              tr.innerHTML = cfg.rowHTML(it, idx);
-              tbody.appendChild(tr);
-            });
-          }
-          tbody.addEventListener('click', e => {
-            const btn = e.target.closest('button[data-idx]');
-            if(!btn) return;
-            const idx = +btn.getAttribute('data-idx');
-            const items = getItems();
-            items.splice(idx,1);
-            setItems(items);
-          });
-          return { getItems, setItems, render };
-        }
-
-        // Parts setup
-        const stockEl = document.querySelector('[name="stock_code"]');
-        const qtyEl = document.querySelector('[name="quantity"]');
-        const currEl = document.querySelector('select[name="currency"]');
-        const partsTbl = tableManager({
-          hiddenId: 'parts_json',
-          tbodySel: '#partsTable tbody',
-          rowHTML: (p, idx) => `
-            <td>${idx+1}</td>
-            <td>${p.stock_code}</td>
-            <td>${p.description || ''}</td>
-            <td>${p.quantity}</td>
-            <td>${p.currency}</td>
-            <td>${p.unit_price != null ? p.unit_price : ''}</td>
-            <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-idx="${idx}">Remove</button></td>`
-        });
-        byId('addPartBtn').addEventListener('click', () => {
-          const stock = (stockEl.value || '').trim();
-          const qty = parseInt(qtyEl.value || '1');
-          const curr = currEl.value;
-          if(!stock) return alert('Please enter a stock code.');
-          const url = new URL('{% url "portal:part_info" %}', window.location.origin);
-          url.searchParams.set('stock_code', stock);
-          url.searchParams.set('currency', curr);
-          fetch(url, {credentials: 'same-origin'})
-            .then(r => { if (r.status===404) throw new Error('Stock code not found'); if(!r.ok) throw new Error('Failed to fetch part info'); return r.json(); })
-            .then(info => {
-              const items = partsTbl.getItems();
-              items.push({ stock_code: stock, quantity: isNaN(qty)?1:Math.max(1, qty), currency: curr, description: info.description, unit_price: info.unit_price });
-              partsTbl.setItems(items);
-              // Clear inputs and ensure inline required are disabled once an item exists
-              stockEl.value = '';
-              qtyEl.value = '1';
-              if (stockEl) stockEl.required = false;
-              if (codeEl) codeEl.required = false;
-            })
-            .catch(err => alert(err.message));
-        });
-        partsTbl.render();
-
-        // Labour setup
-        const codeEl = document.querySelector('[name="code"]');
-        const durEl = document.querySelector('[name="duration"]');
-        const currLEl = document.querySelectorAll('select[name="currency"]')[1] || document.querySelector('select[name="currency"]');
-        const labsTbl = tableManager({
-          hiddenId: 'labours_json',
-          tbodySel: '#laboursTable tbody',
-          rowHTML: (l, idx) => `
-            <td>${idx+1}</td>
-            <td>${l.code}</td>
-            <td>${l.description || ''}</td>
-            <td>${l.duration}</td>
-            <td>${l.currency}</td>
-            <td>${l.unit_rate != null ? l.unit_rate : ''}</td>
-            <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-idx="${idx}">Remove</button></td>`
-        });
-        byId('addLabourBtn').addEventListener('click', () => {
-          const code = (codeEl.value || '').trim();
-          const dur = parseFloat(durEl.value || '1');
-          const curr = currLEl.value;
-          if(!code) return alert('Please enter a labour code.');
-          const url = new URL('{% url "portal:labour_info" %}', window.location.origin);
-          url.searchParams.set('code', code);
-          url.searchParams.set('currency', curr);
-          fetch(url, {credentials: 'same-origin'})
-            .then(r => { if (r.status===404) throw new Error('Labour code not found'); if(!r.ok) throw new Error('Failed to fetch labour info'); return r.json(); })
-            .then(info => {
-              const items = labsTbl.getItems();
-              items.push({ code, duration: isNaN(dur)?1:Math.max(0.25, dur), currency: curr, description: info.description, unit_rate: info.unit_rate });
-              labsTbl.setItems(items);
-              // Clear inputs and ensure inline required are disabled once an item exists
-              codeEl.value = '';
-              durEl.value = '1';
-              if (stockEl) stockEl.required = false;
-              if (codeEl) codeEl.required = false;
-            })
-            .catch(err => alert(err.message));
-        });
-        labsTbl.render();
-
-        // Submission rule: allow empty inline fields if at least one item exists
-        const formEl = document.querySelector('form');
-        function hasAnyItems(){
-          const parts = partsTbl.getItems();
-          const labs = labsTbl.getItems();
-          return (Array.isArray(parts) && parts.length>0) || (Array.isArray(labs) && labs.length>0);
-        }
-        function syncRequired(){
-          const any = hasAnyItems();
-          if (stockEl) stockEl.required = !any;
-          if (codeEl) codeEl.required = !any;
-        }
-        // Patch render to also sync required state
-        const origPartsRender = partsTbl.render; partsTbl.render = () => { origPartsRender(); syncRequired(); };
-        const origLabsRender = labsTbl.render; labsTbl.render = () => { origLabsRender(); syncRequired(); };
-        // Also sync when user types in inline fields
-        ['input','change'].forEach(ev => {
-          if (stockEl) stockEl.addEventListener(ev, syncRequired);
-          if (codeEl) codeEl.addEventListener(ev, syncRequired);
-        });
-        // Initial sync
-        syncRequired();
-
-        formEl.addEventListener('submit', function(e){
-          const any = hasAnyItems();
-          const inlineHasInput = ((stockEl && stockEl.value.trim()) || (codeEl && codeEl.value.trim()));
-          if (!any && !inlineHasInput){
-            e.preventDefault();
-            alert('Please add at least one Spare Part or one Labour before saving.');
-            return false;
-          }
-          return true;
-        });
-      })();
-      </script>
-    </form>
   </div>
 </div>
+	<h1 id="code12">aaaaa</h1>
+
+{% endblock %}
+<!--this block is at the head of the base template.-->
+{% block js %}
+	<script>
+	document.addEventListener("DOMContentLoaded", function() {
+		const parts = JSON.parse('{{ parts|escapejs }}');
+		const addedParts = new Map();
+		const PartsTable = document.getElementById('partsTable').createTBody();
+		const container = document.getElementById('sparePartInputs');
+		let fields = container.querySelectorAll('input,select');
+		let counter = 1;
+		console.log(parts);
+		const form = document.getElementById('create_claim');
+	    let hidden = document.getElementById('parts_payload');
+		function syncHidden() {
+            hidden.value = JSON.stringify(Object.fromEntries(addedParts)
+);
+       }
+
+
+		document.getElementById('addPartBtn').onclick = function() {
+			let stck = fields[0].value;
+			let qty = fields[1].value;
+			let cur = fields[2].value;
+
+			if (!stck) {alert('Please enter a stock code'); return;}
+			if (!qty) {alert('Please enter a quantity'); return;}
+			if (!parts[stck]) {alert('Invalid stock code'); return;}
+			let desc = parts[stck].description;
+			let unit_price = Number(parts[stck][`price_${cur.toLowerCase()}`]);
+			let total_price = Number(qty) * unit_price;
+
+
+			if (addedParts.has(stck)) {alert('Already added'); return;}
+
+
+
+			let row = PartsTable.insertRow()
+			row.insertCell(0).textContent = `${counter++}`;                     <!--id-->
+			row.insertCell(1).textContent = `${stck}`;                          <!--stock_code-->
+			row.insertCell(2).textContent = `${desc}`;            <!--description-->
+			row.insertCell(3).textContent=	`${qty}`;                           <!-- quantity-->
+			row.insertCell(4).textContent = `${unit_price.toFixed(2)}`;                         <!--unit_price-->
+			row.insertCell(5).textContent = `${cur}`;                                <!--currency-->
+			row.insertCell(6).textContent = `${total_price.toFixed(2)}`;              <!--total_price-->
+			const actionCell = row.insertCell(7);                                   <!--actions-->
+			actionCell.innerHTML = `
+		        <button type="button"
+		                class="btn btn-sm btn-outline-danger btn-remove"
+		                aria-label="Remove"
+		                data-stock="${stck}">
+		          Remove
+		        </button>
+		     `;
+
+			addedParts.set(stck, {
+		        stock_code: stck,
+		        description: desc,
+		        quantity: Number(qty),
+		        currency: cur,
+		        unit_price: unit_price,
+		        total_price: total_price
+            });
+
+
+
+			console.log(addedParts);
+			fields[0].value = '';
+			fields[1].value = '';
+
+		};
+		PartsTable.addEventListener('click', function (e) {
+			const btn = e.target.closest('.btn-remove');
+			if (!btn) return;
+			const tr = btn.closest('tr');
+			const stock = btn.dataset.stock || (tr?.cells?.[1]?.textContent || '').trim();
+
+			if (stock && addedParts.has(stock)) {
+				addedParts.delete(stock);
+			}
+			if (tr) {
+				tr.remove();
+			}
+			// Renumber the first column and reset counter
+			Array.from(PartsTable.rows).forEach((r, idx) => {
+				r.cells[0].textContent = String(idx + 1);
+			});
+			counter = PartsTable.rows.length + 1;
+	    });
+
+		form.addEventListener('submit', function() {
+			syncHidden();                                                  // CHANGED: sync once on submit
+			console.log(hidden.value);
+		});
+
+
+
+
+	});
+</script>
 {% endblock %}

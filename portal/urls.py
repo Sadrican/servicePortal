@@ -1,10 +1,4 @@
-"""URL routes for the portal app.
-
-Stick to Django defaults; keep simple, readable URL names and view bindings.
-"""
-
 from django.urls import path
-
 from . import views
 
 app_name = 'portal'
@@ -23,8 +17,6 @@ urlpatterns = [
     path('create_claim', views.create_claim, name='create_claim'),
     path('claim/<int:claim_id>', views.claim_details, name='claim_details'),
     path('claim/<int:claim_id>/update', views.update_claim, name='update_claim'),
+    #API
 
-    # AJAX APIs
-    path('api/part-info', views.part_info, name='part_info'),
-    path('api/labour-info', views.labour_info, name='labour_info'),
 ]

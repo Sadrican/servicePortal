@@ -3,14 +3,21 @@
 
 
 def layout_context(request):
-        user = getattr(request, "user", None)
-        is_partner = getattr(user, "is_partner", False)() if callable(getattr(user, "is_partner", None)) else getattr(
-            user, "is_partner", False)
-        ps_info = getattr(getattr(user, "partner_fields", None), "partner_service", None)
-
-        return {
-            "isPartner": bool(is_partner),
-            "psInfo": ps_info,
-            "userRole": getattr(getattr(user, "role", None), "label", None) or getattr(user, "role", None),
-            "viewLogin": not (user and user.is_authenticated),
-        }
+    #sends every page those info if user is logged in
+    user = request.user
+    if user.is_authenticated:
+        if user.is_partner:
+            return {
+                "isPartner": user.is_partner or user.is_partner_admin,
+                "isAdmin": user.is_partner_admin or user.is_ssh_admin,
+                "userRole": user.role,
+                "psInfo": user.partner_fields.partner_service,
+            }
+        else:
+            return {
+                "isPartner": user.is_partner or user.is_partner_admin,
+                "isAdmin": user.is_partner_admin or user.is_ssh_admin,
+                "userRole": user.role,
+            }
+    else:
+        return {}

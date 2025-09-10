@@ -83,46 +83,7 @@
         <div class="alert alert-light border">No spare parts added to this claim.</div>
       {% endif %}
 
-      <hr>
-      <div class="d-flex align-items-center justify-content-between mt-3">
-        <h6 class="mb-0">Labour</h6>
-      </div>
-      {% if claim.labours.all %}
-        <div class="table-responsive">
-          <table class="table table-sm align-middle">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Code</th>
-                <th scope="col">Description</th>
-                <th scope="col" class="text-end">Duration</th>
-                <th scope="col" class="text-end">Unit Rate</th>
-                <th scope="col" class="text-end">Currency</th>
-                <th scope="col" class="text-end">Total Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in claim.labours.all %}
-                <tr>
-                  <td>{{ forloop.counter }}</td>
-                  <td>{{ row.code }}</td>
-                  <td>{% if row.description %}{{ row.description }}{% else %}{{ row.labour.description }}{% endif %}</td>
-                  <td class="text-end">{{ row.duration }}</td>
-                  <td class="text-end">{{ row.unit_rate }}</td>
-                  <td class="text-end">{{ row.currency }}</td>
-                  <td class="text-end">{{ row.total_price }}</td>
-                </tr>
-              {% empty %}
-                <tr>
-                  <td colspan="7" class="text-center text-muted">No labour added to this claim.</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <div class="alert alert-light border">No labour added to this claim.</div>
-      {% endif %}
+
     </div>
 	  {% else %}
 	  <div class="col">
